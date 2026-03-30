@@ -6,6 +6,7 @@
 
 #include <WiFi.h>
 #include <WebServer.h>
+#include <ESPmDNS.h>
 #include <Preferences.h>
 #include <ArduinoJson.h>
 #include <U8g2lib.h>
@@ -327,15 +328,9 @@ void handleSerial() {
       return;
     }
 
-    // Show on screen
-    u8g2.clearBuffer();
-    u8g2.setFont(u8g2_font_profont11_tr);
-    u8g2.drawStr(0, 12, "Connecting...");
-    u8g2.drawStr(0, 28, ssid.c_str());
-    u8g2.sendBuffer();
+    showConnecting(ssid.c_str());
 
     if (connectWiFi(ssid, pass, 20)) {
-      // Save credentials
       prefs.begin("wl", false);
       prefs.putString("ssid", ssid);
       prefs.putString("pass", pass);
@@ -343,25 +338,14 @@ void handleSerial() {
 
       wifiSSID = ssid;
       wifiPass = pass;
+      MDNS.begin("water-lilies");
       startHttpServer();
-
-      // Show IP on screen
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_profont12_tr);
-      u8g2.drawStr(0, 12, "Connected!");
-      u8g2.setFont(u8g2_font_profont17_tr);
-      u8g2.drawStr(0, 36, WiFi.localIP().toString().c_str());
-      u8g2.setFont(u8g2_font_profont10_tr);
-      u8g2.drawStr(0, 52, "Serial still available");
-      u8g2.sendBuffer();
+      MDNS.addService("http", "tcp", 80);
+      showStandby();
 
       serialRespond("OK " + WiFi.localIP().toString());
     } else {
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_profont11_tr);
-      u8g2.drawStr(0, 12, "WiFi failed");
-      u8g2.drawStr(0, 28, "Serial ready");
-      u8g2.sendBuffer();
+      showWifiFailed();
 
       wl_status_t st = WiFi.status();
       if (st == WL_NO_SSID_AVAIL) serialRespond("ERR:SSID_NOT_FOUND");
@@ -402,19 +386,60 @@ void handleSerial() {
   }
 }
 
+// --- Display: standby screen (shown after boot until first push) ---
+void showStandby() {
+  u8g2.clearBuffer();
+  // Centered "Water Lilies" in large font
+  u8g2.setFont(u8g2_font_profont17_tr);
+  const char* title = "Water Lilies";
+  int tw = u8g2.getStrWidth(title);
+  u8g2.drawStr((SCREEN_W - tw) / 2, 24, title);
+  // Thin line separator
+  u8g2.drawHLine(24, 30, 80);
+  // Status line below
+  u8g2.setFont(u8g2_font_profont10_tr);
+  if (wifiConnected) {
+    String status = WiFi.localIP().toString();
+    int sw = u8g2.getStrWidth(status.c_str());
+    u8g2.drawStr((SCREEN_W - sw) / 2, 46, status.c_str());
+    u8g2.drawStr((SCREEN_W - u8g2.getStrWidth("ready")) / 2, 58, "ready");
+  } else {
+    u8g2.drawStr((SCREEN_W - u8g2.getStrWidth("/monet-setup")) / 2, 46, "/monet-setup");
+  }
+  u8g2.sendBuffer();
+}
+
+void showConnecting(const char* ssid) {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_profont12_tr);
+  int cw = u8g2.getStrWidth("Connecting");
+  u8g2.drawStr((SCREEN_W - cw) / 2, 24, "Connecting");
+  u8g2.setFont(u8g2_font_profont10_tr);
+  int sw = u8g2.getStrWidth(ssid);
+  u8g2.drawStr((SCREEN_W - sw) / 2, 42, ssid);
+  // Simple dots animation placeholder
+  u8g2.drawStr(58, 56, ". . .");
+  u8g2.sendBuffer();
+}
+
+void showWifiFailed() {
+  u8g2.clearBuffer();
+  u8g2.setFont(u8g2_font_profont12_tr);
+  int fw = u8g2.getStrWidth("WiFi failed");
+  u8g2.drawStr((SCREEN_W - fw) / 2, 24, "WiFi failed");
+  u8g2.drawHLine(24, 30, 80);
+  u8g2.setFont(u8g2_font_profont10_tr);
+  u8g2.drawStr((SCREEN_W - u8g2.getStrWidth("/monet-setup")) / 2, 46, "/monet-setup");
+  u8g2.sendBuffer();
+}
+
 // --- Setup ---
 void setup() {
   Serial.begin(115200);
-  Serial.setTimeout(5000); // allow longer serial reads for JSON payloads
+  Serial.setTimeout(5000);
   delay(500);
 
-  // Init display
   u8g2.begin();
-  u8g2.clearBuffer();
-  u8g2.setFont(u8g2_font_profont12_tr);
-  u8g2.drawStr(0, 14, "Water Lilies");
-  u8g2.setFont(u8g2_font_profont11_tr);
-  u8g2.drawStr(0, 30, "MVP v0.1.0");
 
   // Load saved credentials
   prefs.begin("wl", true);
@@ -424,34 +449,22 @@ void setup() {
   prefs.end();
 
   if (!wifiSSID.isEmpty()) {
-    u8g2.drawStr(0, 46, "Connecting WiFi...");
-    u8g2.sendBuffer();
+    showConnecting(wifiSSID.c_str());
 
     if (connectWiFi(wifiSSID, wifiPass, 10)) {
+      MDNS.begin("water-lilies");
       startHttpServer();
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_profont12_tr);
-      u8g2.drawStr(0, 14, "Water Lilies");
-      u8g2.setFont(u8g2_font_profont17_tr);
-      u8g2.drawStr(0, 36, WiFi.localIP().toString().c_str());
-      u8g2.setFont(u8g2_font_profont10_tr);
-      u8g2.drawStr(0, 52, "HTTP + Serial ready");
-      u8g2.sendBuffer();
+      MDNS.addService("http", "tcp", 80);
     } else {
-      u8g2.clearBuffer();
-      u8g2.setFont(u8g2_font_profont12_tr);
-      u8g2.drawStr(0, 14, "Water Lilies");
-      u8g2.setFont(u8g2_font_profont11_tr);
-      u8g2.drawStr(0, 30, "WiFi failed");
-      u8g2.drawStr(0, 46, "Serial ready");
-      u8g2.sendBuffer();
+      showWifiFailed();
+      Serial.println("Water Lilies ready (WiFi failed)");
+      Serial.println("Send 'GET /info' for help");
+      return;
     }
-  } else {
-    u8g2.drawStr(0, 46, "Setup via USB...");
-    u8g2.sendBuffer();
   }
 
-  Serial.println("Water Lilies MVP ready");
+  showStandby();
+  Serial.println("Water Lilies ready");
   Serial.println("Send 'GET /info' for help");
 }
 
