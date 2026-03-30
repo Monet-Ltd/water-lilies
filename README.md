@@ -39,7 +39,7 @@ Agent:
 ### 安裝 Claude Code plugin
 
 ```bash
-claude plugin add ~/water-lilies
+claude plugin add Monet-Ltd/monet-setup
 ```
 
 ### 設定設備
@@ -143,17 +143,17 @@ Agent 不需要預先知道任何產品的細節。
 water-lilies/
 ├── README.md
 ├── LICENSE                              MIT
-├── plugin.json                          Claude Code plugin 定義
 ├── DEVELOPMENT.md                       開發指南、已知問題
 ├── firmware/
 │   └── water-lilies-mvp/
 │       └── water-lilies-mvp.ino         ESP32-C3 + SSD1306 韌體
-├── skills/
-│   └── monet-setup.md                   /monet-setup slash command
 └── docs/
     ├── agent-native-iot-display.md      核心架構：API 規格、protocol
     ├── hardware-options.md              硬體方案比較與實測結論
     └── design-evolution.md              設計演進與決策紀錄
+
+# Claude Code plugin 在獨立 repo：
+# https://github.com/Monet-Ltd/monet-setup
 ```
 
 ## 命名
