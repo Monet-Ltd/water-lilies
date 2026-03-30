@@ -27,6 +27,7 @@ String authToken = "";
 String wifiSSID = "";
 String wifiPass = "";
 bool wifiConnected = false;
+uint32_t lastDisplayHash = 0;
 
 // --- Serial protocol ---
 #define SERIAL_END_MARKER "\n---END---"
@@ -45,7 +46,21 @@ const uint8_t* getFontBySize(int size) {
   return u8g2_font_profont10_tr;
 }
 
+// Simple DJB2 hash
+uint32_t hashString(const String& s) {
+  uint32_t h = 5381;
+  for (unsigned int i = 0; i < s.length(); i++) {
+    h = ((h << 5) + h) + s[i];
+  }
+  return h;
+}
+
 void drawFromJson(const String& json) {
+  // Skip redraw if identical to last frame
+  uint32_t h = hashString(json);
+  if (h == lastDisplayHash) return;
+  lastDisplayHash = h;
+
   JsonDocument doc;
   DeserializationError err = deserializeJson(doc, json);
   if (err) {
