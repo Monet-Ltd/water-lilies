@@ -1,0 +1,12 @@
+{
+  "name": "@monet-ltd/water-lilies-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Water Lilies IoT displays",
+  "type": "module",
+  "bin": {
+    "water-lilies-mcp": "./server.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  }
+}
