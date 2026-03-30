@@ -66,6 +66,20 @@ ser.close()
 
 ## Known Issues & Solutions
 
+### OLED flicker on repeated updates
+
+Pushing the same data repeatedly causes visible flicker from `clearBuffer` + `sendBuffer`.
+
+**Fix (two layers):**
+1. **Client side**: Cache last pushed values in `~/.monet/.last_push`. Skip curl if unchanged.
+2. **Firmware side**: Hash incoming JSON payload. Skip redraw if hash matches last frame.
+
+### statusLine background process gets killed
+
+`curl ... &>/dev/null &` (background) gets killed when Claude Code's statusLine script exits.
+
+**Fix:** Run curl in foreground with `-m 1` (1 second timeout). The cache layer prevents unnecessary calls, so the blocking curl rarely fires.
+
 ### NVS "NOT_FOUND" error on first boot
 
 ```
