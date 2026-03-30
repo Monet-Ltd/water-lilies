@@ -1,0 +1,15 @@
+# Build artifacts
+firmware/water-lilies-mvp/build/
+*.o
+*.elf
+*.bin
+*.map
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~

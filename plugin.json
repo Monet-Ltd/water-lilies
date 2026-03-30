@@ -1,0 +1,11 @@
+{
+  "name": "water-lilies",
+  "description": "Water Lilies — Agent-native IoT display by Monet Ltd.",
+  "version": "0.1.0",
+  "skills": [
+    {
+      "name": "monet-setup",
+      "path": "skills/monet-setup.md"
+    }
+  ]
+}
